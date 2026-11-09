@@ -1,0 +1,198 @@
+{
+  "name": "pray-reminder",
+  "displayName": "%displayName%",
+  "description": "%description%",
+  "version": "0.3.0",
+  "publisher": "asnur",
+  "license": "MIT",
+  "private": true,
+  "engines": {
+    "vscode": "^1.90.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "keywords": [
+    "sholat",
+    "prayer",
+    "ramadhan",
+    "ramadan",
+    "adzan"
+  ],
+  "main": "./out/extension.js",
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "contributes": {
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "pray",
+          "title": "%view.title%",
+          "icon": "media/icon.svg"
+        }
+      ]
+    },
+    "views": {
+      "pray": [
+        {
+          "id": "pray.dashboard",
+          "type": "webview",
+          "name": "%view.title%"
+        }
+      ]
+    },
+    "commands": [
+      {
+        "command": "pray.showSchedule",
+        "title": "%command.showSchedule%",
+        "category": "Pray"
+      },
+      {
+        "command": "pray.showRamadan",
+        "title": "%command.showRamadan%",
+        "category": "Pray"
+      },
+      {
+        "command": "pray.setLocation",
+        "title": "%command.setLocation%",
+        "category": "Pray"
+      },
+      {
+        "command": "pray.switchLanguage",
+        "title": "%command.switchLanguage%",
+        "category": "Pray"
+      },
+      {
+        "command": "pray.testReminder",
+        "title": "%command.testReminder%",
+        "category": "Pray"
+      },
+      {
+        "command": "pray.openSettings",
+        "title": "%command.openSettings%",
+        "category": "Pray"
+      }
+    ],
+    "configuration": {
+      "title": "Pray Reminder",
+      "properties": {
+        "pray.language": {
+          "type": "string",
+          "default": "auto",
+          "enum": [
+            "auto",
+            "id",
+            "en"
+          ],
+          "enumDescriptions": [
+            "%config.language.auto%",
+            "Bahasa Indonesia",
+            "English"
+          ],
+          "description": "%config.language%"
+        },
+        "pray.locationName": {
+          "type": "string",
+          "default": "Jakarta",
+          "description": "%config.locationName%"
+        },
+        "pray.latitude": {
+          "type": "number",
+          "default": -6.2088,
+          "minimum": -90,
+          "maximum": 90,
+          "description": "%config.latitude%"
+        },
+        "pray.longitude": {
+          "type": "number",
+          "default": 106.8456,
+          "minimum": -180,
+          "maximum": 180,
+          "description": "%config.longitude%"
+        },
+        "pray.method": {
+          "type": "string",
+          "default": "Kemenag",
+          "enum": [
+            "Kemenag",
+            "JAKIM",
+            "MUIS",
+            "MWL",
+            "ISNA",
+            "Egypt",
+            "Makkah",
+            "Karachi"
+          ],
+          "enumDescriptions": [
+            "%config.method.kemenag%",
+            "JAKIM Malaysia (20° / 18°)",
+            "MUIS Singapore (20° / 18°)",
+            "Muslim World League (18° / 17°)",
+            "Islamic Society of North America (15° / 15°)",
+            "Egyptian General Authority of Survey (19.5° / 17.5°)",
+            "%config.method.makkah%",
+            "University of Islamic Sciences, Karachi (18° / 18°)"
+          ],
+          "description": "%config.method%"
+        },
+        "pray.asrMadhab": {
+          "type": "string",
+          "default": "Shafii",
+          "enum": [
+            "Shafii",
+            "Hanafi"
+          ],
+          "description": "%config.asrMadhab%"
+        },
+        "pray.ihtiyat": {
+          "type": "number",
+          "default": 2,
+          "minimum": 0,
+          "maximum": 10,
+          "description": "%config.ihtiyat%"
+        },
+        "pray.imsakMinutes": {
+          "type": "number",
+          "default": 10,
+          "minimum": 0,
+          "description": "%config.imsakMinutes%"
+        },
+        "pray.remindBeforeMinutes": {
+          "type": "number",
+          "default": 10,
+          "minimum": 0,
+          "description": "%config.remindBeforeMinutes%"
+        },
+        "pray.modalNotification": {
+          "type": "boolean",
+          "default": false,
+          "description": "%config.modalNotification%"
+        },
+        "pray.hijriOffset": {
+          "type": "number",
+          "default": 0,
+          "minimum": -2,
+          "maximum": 2,
+          "description": "%config.hijriOffset%"
+        },
+        "pray.showRamadanCountdown": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.showRamadanCountdown%"
+        }
+      }
+    }
+  },
+  "scripts": {
+    "clean": "rm -rf out",
+    "build": "npm run clean && tsc -p . && tsc -p src/webview",
+    "watch": "tsc -p . --watch",
+    "test": "npm run build && node --test out/test/*.test.js",
+    "package": "npm run build && sh scripts/package.sh"
+  },
+  "devDependencies": {
+    "@types/vscode": "1.90.0",
+    "typescript": "5.9.3"
+  }
+}
