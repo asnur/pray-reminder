@@ -5,6 +5,9 @@
   "command.showSchedule": "Show Prayer Times",
   "command.showRamadan": "Ramadan Countdown",
   "command.setLocation": "Set Location",
+  "command.chooseSound": "Choose Adhan Sound",
+  "command.toggleSound": "Toggle Reminder Sound",
+  "command.stopSound": "Stop Adhan",
   "command.switchLanguage": "Switch Language (Indonesian / English)",
   "command.testReminder": "Test Reminder Notification",
   "command.openSettings": "Settings",
@@ -22,5 +25,10 @@
   "config.remindBeforeMinutes": "Send a reminder this many minutes before each prayer time. 0 = disabled.",
   "config.modalNotification": "Show the prayer time notification as a modal dialog (must be clicked) so it can't be missed.",
   "config.hijriOffset": "Shift Ramadan dates (days) relative to the Umm al-Qura calendar, e.g. 1 if your country starts a day later.",
-  "config.showRamadanCountdown": "Show the Ramadan countdown in the status bar and dashboard."
+  "config.showRamadanCountdown": "Show the Ramadan countdown in the status bar and dashboard.",
+  "config.sound.enabled": "Play a sound with prayer notifications.",
+  "config.sound.file": "Path to an adhan audio file (mp3, m4a, wav…) played when a prayer time starts. Leave empty to use the built-in chime.",
+  "config.sound.fajrFile": "Optional separate adhan file for Fajr. Leave empty to use `pray.sound.file`.",
+  "config.sound.volume": "Volume (0–100).",
+  "config.sound.beforeReminder": "Also play the chime for the early reminder before each prayer."
 }

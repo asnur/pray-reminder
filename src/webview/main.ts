@@ -86,6 +86,10 @@ function applyStaticText(d: DashboardData): void {
     btn.classList.toggle('active', active);
     btn.setAttribute('aria-pressed', String(active));
   });
+  const sound = $('sound-btn');
+  sound.textContent = d.soundEnabled ? '🔊' : '🔇';
+  sound.title = t(d.soundEnabled ? 'sound.on' : 'sound.off');
+  sound.setAttribute('aria-label', sound.title);
 }
 
 function render(d: DashboardData): void {

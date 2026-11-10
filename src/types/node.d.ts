@@ -10,7 +10,31 @@ declare const console: {
   error(...args: unknown[]): void;
 };
 
+declare const process: {
+  platform: string;
+  env: Record<string, string | undefined>;
+};
+
+declare module 'child_process' {
+  export interface ChildProcess {
+    kill(): boolean;
+    once(event: 'error', listener: (err: Error & { code?: string }) => void): this;
+    once(event: 'exit', listener: (code: number | null, signal: string | null) => void): this;
+  }
+  export function spawn(
+    command: string,
+    args: readonly string[],
+    options?: { stdio?: 'ignore'; env?: Record<string, string | undefined>; windowsHide?: boolean }
+  ): ChildProcess;
+}
+
+declare module 'os' {
+  export function homedir(): string;
+}
+
 declare module 'fs' {
+  export function existsSync(path: string): boolean;
+  export function writeFileSync(path: string, data: Uint8Array): void;
   export function mkdirSync(path: string, options?: { recursive?: boolean }): void;
   export function openSync(path: string, flags: string): number;
   export function closeSync(fd: number): void;
@@ -21,6 +45,8 @@ declare module 'fs' {
 
 declare module 'path' {
   export function join(...paths: string[]): string;
+  export function extname(path: string): string;
+  export function basename(path: string): string;
 }
 
 declare module 'node:test' {

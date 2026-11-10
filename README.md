@@ -11,7 +11,21 @@ A VS Code / Antigravity IDE extension that reminds you to pray while you code. I
   - an **ID | EN** toggle to switch languages instantly.
 - **Status bar**: the next prayer and time remaining (`🔔 Asr 14:59 · 1h 20m`), plus `🌙 Ramadan in 91 days`.
 - **Reminders**: a notification X minutes before each prayer (default 10) and another when it starts, with a "Remind me in 5 minutes" button. On Fridays, Dhuhr is shown as Jumu'ah.
+- **Adhan sound**: plays your own adhan file when a prayer time starts (optionally a separate one for Fajr), or a soft built-in chime. Stop it from the notification, the status bar or `Pray: Stop Adhan`.
 - **Multi-window safe**: each notification appears only once, even with several IDE windows open.
+
+## Adhan sound
+
+1. Get an adhan audio file you like (mp3, m4a, wav…). No recording is bundled because of copyright.
+2. Run `Pray: Choose Adhan Sound`, then pick **All prayers** or **Fajr only**. The file plays once as a preview.
+3. Use the 🔊/🔇 button in the dashboard to mute or unmute.
+
+| Event | Sound |
+|---|---|
+| Prayer time starts | your adhan (`pray.sound.file`, or `pray.sound.fajrFile` for Fajr) |
+| Early reminder, Imsak, snooze | soft built-in chime (generated in code, no audio file is shipped) |
+
+Playback uses the OS's own player: `afplay` on macOS, PowerShell/`MediaPlayer` on Windows, and `ffplay`, `mpv`, `mpg123` or `paplay` on Linux. Files are passed as arguments and never through a shell.
 
 ## Security
 
@@ -24,7 +38,7 @@ A VS Code / Antigravity IDE extension that reminds you to pray while you code. I
 ```sh
 npm ci                 # installs typescript + @types/vscode (no install scripts)
 npm run package        # builds TypeScript and creates pray-reminder-<version>.vsix
-"/Applications/Antigravity IDE.app/Contents/Resources/app/bin/antigravity-ide" --install-extension pray-reminder-0.3.0.vsix --force
+"/Applications/Antigravity IDE.app/Contents/Resources/app/bin/antigravity-ide" --install-extension pray-reminder-0.4.0.vsix --force
 ```
 
 Then run **Developer: Reload Window**. For VS Code, use `code --install-extension …` instead.
@@ -44,6 +58,9 @@ Then run **Developer: Reload Window**. For VS Code, use `code --install-extensio
 | `Pray: Ramadan Countdown` | Open the sidebar dashboard |
 | `Pray: Set Location` | Pick a city or enter coordinates |
 | `Pray: Switch Language` | Toggle Indonesian / English |
+| `Pray: Choose Adhan Sound` | Pick an adhan file (all prayers / Fajr only) or reset to the chime |
+| `Pray: Toggle Reminder Sound` | Mute / unmute |
+| `Pray: Stop Adhan` | Stop the sound that is playing |
 | `Pray: Test Reminder Notification` | Preview the notifications |
 | `Pray: Settings` | Open this extension's settings |
 
@@ -58,6 +75,11 @@ Then run **Developer: Reload Window**. For VS Code, use `code --install-extensio
 | `pray.remindBeforeMinutes` | `10` | 0 disables the early reminder |
 | `pray.modalNotification` | `false` | `true` shows a dialog you must click, so it can't be missed |
 | `pray.hijriOffset` | `0` | Set to `1` if your country starts Ramadan a day after Umm al-Qura |
+| `pray.sound.enabled` | `true` | Play sounds with notifications |
+| `pray.sound.file` | empty | Adhan file for every prayer (empty = chime) |
+| `pray.sound.fajrFile` | empty | Separate adhan for Fajr (optional) |
+| `pray.sound.volume` | `80` | 0–100 |
+| `pray.sound.beforeReminder` | `true` | Chime for the early reminder |
 
 Times are shown in the system time zone. Calculated times may differ from official schedules by ±1–2 minutes. Ramadan dates are estimates; official dates follow moon sighting or your local authority.
 
@@ -71,6 +93,7 @@ src/
   prayTimes.ts      astronomical prayer time calculation
   ramadan.ts        Ramadan period & Hijri date
   i18n.ts           Indonesian & English translations
+  sound.ts          adhan playback via OS players & synthesized chime
   shared/types.d.ts types shared by the extension and the webview
   webview/main.ts   dashboard script (runs in the webview)
   test/             tests using node:test

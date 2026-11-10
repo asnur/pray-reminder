@@ -14,6 +14,19 @@ export interface Config extends PrayerOptions {
   modal: boolean;
   hijriOffset: number;
   showRamadan: boolean;
+  sound: SoundConfig;
+}
+
+export interface SoundConfig {
+  enabled: boolean;
+  /** adhan file for every prayer; empty = built-in chime */
+  file: string;
+  /** optional separate adhan for Fajr */
+  fajrFile: string;
+  /** 0–100 */
+  volume: number;
+  /** also play the chime for the early reminder */
+  beforeReminder: boolean;
 }
 
 export interface Prayer {
@@ -74,6 +87,7 @@ export function toDashboardData(s: Snapshot): DashboardData {
     strings: dictionary(s.cfg.lang),
     location: s.cfg.locationName,
     method: s.cfg.method,
+    soundEnabled: s.cfg.sound.enabled,
     hijriLabel: formatHijri(s.now, s.cfg.hijriOffset, locale),
     inRamadan: s.inRamadan,
     yesterdayIsha: s.yesterdayIsha?.getTime() ?? null,

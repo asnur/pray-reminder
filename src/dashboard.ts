@@ -89,6 +89,7 @@ export class DashboardProvider implements vscode.WebviewViewProvider {
     <footer class="actions">
       <button data-command="pray.setLocation" data-i18n="wv.setLocation"></button>
       <button data-command="pray.testReminder" data-i18n="wv.testReminder"></button>
+      <button data-command="pray.toggleSound" class="ghost" id="sound-btn"></button>
       <button data-command="pray.openSettings" class="ghost" data-i18n-title="wv.settings">⚙</button>
     </footer>
   </main>

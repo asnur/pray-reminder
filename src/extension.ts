@@ -4,6 +4,7 @@ import * as path from 'path';
 import { DashboardProvider } from './dashboard';
 import { LOCALES, resolveLang, t, type Lang } from './i18n';
 import { isReminder, snapshot, toDashboardData, type Config, type Prayer, type Snapshot } from './schedule';
+import { ensureChime, expandHome, SoundPlayer } from './sound';
 
 const TICK_MS = 20e3;
 const GRACE_MS = 10 * 60e3; // the "it's time" notification is still sent up to 10 minutes late
@@ -41,9 +42,13 @@ const CITIES: ReadonlyArray<[string, number, number]> = [
 
 let prayerItem: vscode.StatusBarItem;
 let ramadanItem: vscode.StatusBarItem;
+let soundItem: vscode.StatusBarItem;
 let dashboard: DashboardProvider;
+let player: SoundPlayer;
+let storageDir: string;
 let lockDir: string;
 const notified = new Set<string>();
+const warnedMissing = new Set<string>();
 
 function getConfig(): Config {
   const c = vscode.workspace.getConfiguration('pray');
@@ -60,6 +65,13 @@ function getConfig(): Config {
     modal: c.get('modalNotification', false),
     hijriOffset: c.get('hijriOffset', 0),
     showRamadan: c.get('showRamadanCountdown', true),
+    sound: {
+      enabled: c.get('sound.enabled', true),
+      file: c.get('sound.file', ''),
+      fajrFile: c.get('sound.fajrFile', ''),
+      volume: c.get('sound.volume', 80),
+      beforeReminder: c.get('sound.beforeReminder', true),
+    },
   };
 }
 
@@ -113,14 +125,40 @@ function atTimeMessage(p: Prayer, inRamadan: boolean, lang: Lang): string {
   return t(lang, 'notify.prayer', p.label, at);
 }
 
-async function notifyAt(p: Prayer, inRamadan: boolean, cfg: Config): Promise<void> {
-  const ok = t(cfg.lang, p.key === 'imsak' ? 'notify.ok' : 'notify.okPray');
-  const snooze = t(cfg.lang, 'notify.snooze');
-  const choice = await vscode.window.showWarningMessage(atTimeMessage(p, inRamadan, cfg.lang), { modal: cfg.modal }, ok, snooze);
-  if (choice === snooze) setTimeout(() => void notifyAt(p, inRamadan, cfg), SNOOZE_MS);
+/** The configured adhan file if it exists, otherwise the built-in chime. */
+function soundFile(file: string, lang: Lang): string {
+  if (file) {
+    const full = expandHome(file);
+    if (fs.existsSync(full)) return full;
+    if (!warnedMissing.has(full)) {
+      warnedMissing.add(full);
+      vscode.window.showWarningMessage(t(lang, 'sound.missing', full));
+    }
+  }
+  return ensureChime(storageDir);
 }
 
-function notifyBefore(p: Prayer, msLeft: number, lang: Lang): void {
+/** Adhan for prayer times; the chime for Imsak, snoozes and early reminders (`p` = null). */
+function playFor(p: Prayer | null, cfg: Config): void {
+  if (!cfg.sound.enabled) return;
+  const adhan = p && p.key !== 'imsak' ? (p.key === 'fajr' && cfg.sound.fajrFile) || cfg.sound.file : '';
+  player.play(soundFile(adhan, cfg.lang), cfg.sound.volume);
+}
+
+async function notifyAt(p: Prayer, inRamadan: boolean, cfg: Config, snoozed = false): Promise<void> {
+  playFor(snoozed ? null : p, cfg);
+  const ok = t(cfg.lang, p.key === 'imsak' ? 'notify.ok' : 'notify.okPray');
+  const snooze = t(cfg.lang, 'notify.snooze');
+  const stop = t(cfg.lang, 'notify.stopSound');
+  const actions = player.playing ? [ok, snooze, stop] : [ok, snooze];
+  const choice = await vscode.window.showWarningMessage(atTimeMessage(p, inRamadan, cfg.lang), { modal: cfg.modal }, ...actions);
+  if (choice === stop || choice === snooze) player.stop();
+  if (choice === snooze) setTimeout(() => void notifyAt(p, inRamadan, cfg, true), SNOOZE_MS);
+}
+
+function notifyBefore(p: Prayer, msLeft: number, cfg: Config): void {
+  const { lang } = cfg;
+  if (cfg.sound.beforeReminder) playFor(null, cfg);
   const what = p.key === 'imsak' ? p.label : t(lang, 'notify.beforeTarget', p.label);
   vscode.window.showInformationMessage(t(lang, 'notify.before', fmtDuration(msLeft, lang), what, fmtTime(p.time)));
 }
@@ -131,7 +169,7 @@ function checkReminders(s: Snapshot): void {
     const msLeft = p.time.getTime() - s.now.getTime();
     const id = `${p.key}-${p.time.getTime()}`;
     if (s.cfg.remindBefore > 0 && msLeft > 60e3 && msLeft <= s.cfg.remindBefore * 60e3) {
-      if (claim(`${id}-pre`)) notifyBefore(p, msLeft, s.cfg.lang);
+      if (claim(`${id}-pre`)) notifyBefore(p, msLeft, s.cfg);
     } else if (msLeft <= 0 && msLeft > -GRACE_MS) {
       if (claim(`${id}-at`)) void notifyAt(p, s.inRamadan, s.cfg);
     }
@@ -242,6 +280,48 @@ async function setLocation(): Promise<void> {
   vscode.window.showInformationMessage(t(lang, 'loc.saved', name));
 }
 
+async function chooseSound(): Promise<void> {
+  const { lang } = getConfig();
+  type Item = vscode.QuickPickItem & { target: 'file' | 'fajrFile' | 'reset' };
+  const pick = await vscode.window.showQuickPick<Item>(
+    [
+      { label: `$(unmute) ${t(lang, 'sound.pickAll')}`, target: 'file' },
+      { label: `$(star-empty) ${t(lang, 'sound.pickFajr')}`, target: 'fajrFile' },
+      { label: `$(discard) ${t(lang, 'sound.pickReset')}`, target: 'reset' },
+    ],
+    { title: t(lang, 'sound.pickWhich') }
+  );
+  if (!pick) return;
+
+  const c = vscode.workspace.getConfiguration('pray');
+  const G = vscode.ConfigurationTarget.Global;
+  if (pick.target === 'reset') {
+    await c.update('sound.file', undefined, G);
+    await c.update('sound.fajrFile', undefined, G);
+    vscode.window.showInformationMessage(t(lang, 'sound.reset'));
+    return;
+  }
+
+  const uris = await vscode.window.showOpenDialog({
+    title: t(lang, pick.target === 'file' ? 'sound.pickTitle' : 'sound.pickFajrTitle'),
+    canSelectMany: false,
+    filters: { Audio: ['mp3', 'm4a', 'aac', 'wav', 'ogg', 'flac', 'aiff'] },
+  });
+  const file = uris?.[0]?.fsPath;
+  if (!file) return;
+  await c.update(`sound.${pick.target}`, file, G);
+  await c.update('sound.enabled', true, G);
+  vscode.window.showInformationMessage(t(lang, 'sound.saved', path.basename(file)));
+  player.play(file, getConfig().sound.volume); // preview — stop it from the status bar
+}
+
+async function toggleSound(): Promise<void> {
+  const { lang, sound } = getConfig();
+  await vscode.workspace.getConfiguration('pray').update('sound.enabled', !sound.enabled, vscode.ConfigurationTarget.Global);
+  if (sound.enabled) player.stop();
+  vscode.window.showInformationMessage(t(lang, sound.enabled ? 'sound.toggled.off' : 'sound.toggled.on'));
+}
+
 function setLanguage(lang: Lang): Thenable<void> {
   return vscode.workspace.getConfiguration('pray').update('language', lang, vscode.ConfigurationTarget.Global);
 }
@@ -250,15 +330,31 @@ function testReminder(): void {
   const s = snapshot(getConfig());
   const p = s.next ?? s.today.find((x) => x.key === 'fajr');
   if (!p) return;
-  notifyBefore(p, Math.max(p.time.getTime() - s.now.getTime(), 60e3), s.cfg.lang);
+  // Show both notifications but play only the adhan, not the chime on top of it.
+  notifyBefore(p, Math.max(p.time.getTime() - s.now.getTime(), 60e3), { ...s.cfg, sound: { ...s.cfg.sound, beforeReminder: false } });
   void notifyAt(p, s.inRamadan, s.cfg);
 }
 
 // --- Lifecycle ------------------------------------------------------------
 
 export function activate(context: vscode.ExtensionContext): void {
-  lockDir = path.join(context.globalStorageUri.fsPath, 'notified');
+  storageDir = context.globalStorageUri.fsPath;
+  lockDir = path.join(storageDir, 'notified');
   cleanupLocks();
+
+  soundItem = vscode.window.createStatusBarItem('pray.sound', vscode.StatusBarAlignment.Right, 101);
+  soundItem.command = 'pray.stopSound';
+  soundItem.backgroundColor = new vscode.ThemeColor('statusBarItem.warningBackground');
+  player = new SoundPlayer(
+    (playing) => {
+      const { lang } = getConfig();
+      soundItem.name = t(lang, 'sound.stopName');
+      soundItem.text = t(lang, 'sound.stop');
+      if (playing) soundItem.show();
+      else soundItem.hide();
+    },
+    () => vscode.window.showWarningMessage(t(getConfig().lang, 'sound.noPlayer'))
+  );
 
   dashboard = new DashboardProvider(context.extensionUri, () => toDashboardData(snapshot(getConfig())), setLanguage);
 
@@ -271,12 +367,17 @@ export function activate(context: vscode.ExtensionContext): void {
   context.subscriptions.push(
     prayerItem,
     ramadanItem,
+    soundItem,
     { dispose: () => clearInterval(timer) },
+    { dispose: () => player.stop() },
     vscode.window.registerWebviewViewProvider(DashboardProvider.viewId, dashboard),
     vscode.commands.registerCommand('pray.showSchedule', openDashboard),
     vscode.commands.registerCommand('pray.showRamadan', openDashboard),
     vscode.commands.registerCommand('pray.setLocation', setLocation),
     vscode.commands.registerCommand('pray.testReminder', testReminder),
+    vscode.commands.registerCommand('pray.chooseSound', chooseSound),
+    vscode.commands.registerCommand('pray.toggleSound', toggleSound),
+    vscode.commands.registerCommand('pray.stopSound', () => player.stop()),
     vscode.commands.registerCommand('pray.switchLanguage', () => setLanguage(getConfig().lang === 'id' ? 'en' : 'id')),
     vscode.commands.registerCommand('pray.openSettings', () =>
       vscode.commands.executeCommand('workbench.action.openSettings', '@ext:asnur.pray-reminder')

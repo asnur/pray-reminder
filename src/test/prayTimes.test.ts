@@ -4,6 +4,7 @@ import { resolveLang, t } from '../i18n';
 import { getPrayerTimes, type PrayerOptions, type PrayerTimes } from '../prayTimes';
 import { formatHijri, getRamadanInfo } from '../ramadan';
 import { snapshot, toDashboardData, type Config } from '../schedule';
+import { chimeWav, expandHome, playerCommands } from '../sound';
 
 const JAKARTA: PrayerOptions = { latitude: -6.2088, longitude: 106.8456, method: 'Kemenag', asr: 'Shafii', ihtiyat: 2 };
 
@@ -16,6 +17,7 @@ const config = (lang: Config['lang']): Config => ({
   modal: false,
   hijriOffset: 0,
   showRamadan: true,
+  sound: { enabled: true, file: '', fajrFile: '', volume: 80, beforeReminder: true },
 });
 
 // Time in WIB (UTC+7), regardless of the time zone of the machine running the tests.
@@ -101,4 +103,34 @@ test('i18n: language resolution, placeholders, dashboard payload', () => {
   assert.strictEqual(data.locale, 'en-GB');
   assert.strictEqual(data.strings['wv.today'], "Today's Schedule");
   assert.strictEqual(data.hijriLabel, '29 Jumada I 1448 AH');
+  assert.strictEqual(data.soundEnabled, true);
+});
+
+test('sound: chime is a valid PCM WAV', () => {
+  const wav = chimeWav();
+  const ascii = (from: number, to: number) => String.fromCharCode(...wav.slice(from, to));
+  const view = new DataView(wav.buffer);
+  assert.strictEqual(ascii(0, 4), 'RIFF');
+  assert.strictEqual(ascii(8, 12), 'WAVE');
+  assert.strictEqual(view.getUint16(20, true), 1); // PCM
+  assert.strictEqual(view.getUint32(4, true), wav.length - 8);
+  assert.strictEqual(view.getUint32(40, true), wav.length - 44);
+});
+
+test('sound: player commands per platform', () => {
+  const mac = playerCommands('/a/adzan.mp3', 80, 'darwin');
+  assert.deepStrictEqual(mac, [{ cmd: 'afplay', args: ['-v', '0.80', '/a/adzan.mp3'] }]);
+
+  const win = playerCommands('C:\\adzan.mp3', 50, 'win32')[0];
+  assert.strictEqual(win.cmd, 'powershell.exe');
+  assert.strictEqual(win.env?.PRAY_SOUND, 'C:\\adzan.mp3');
+  assert.ok(!win.args.join(' ').includes('adzan.mp3'), 'path must not be interpolated into the script');
+
+  const linuxMp3 = playerCommands('/a/adzan.mp3', 100, 'linux').map((c) => c.cmd);
+  assert.deepStrictEqual(linuxMp3, ['ffplay', 'mpv', 'mpg123']);
+  const linuxWav = playerCommands('/a/chime.wav', 100, 'linux').map((c) => c.cmd);
+  assert.deepStrictEqual(linuxWav, ['paplay', 'ffplay', 'mpv', 'aplay']);
+
+  assert.ok(expandHome('~/adzan.mp3').endsWith('/adzan.mp3') && !expandHome('~/adzan.mp3').startsWith('~'));
+  assert.strictEqual(expandHome('/abs/adzan.mp3'), '/abs/adzan.mp3');
 });

@@ -5,6 +5,9 @@
   "command.showSchedule": "Tampilkan Jadwal Sholat",
   "command.showRamadan": "Countdown Ramadhan",
   "command.setLocation": "Atur Lokasi",
+  "command.chooseSound": "Pilih Suara Adzan",
+  "command.toggleSound": "Nyalakan/Matikan Suara Pengingat",
+  "command.stopSound": "Hentikan Adzan",
   "command.switchLanguage": "Ganti Bahasa (Indonesia / Inggris)",
   "command.testReminder": "Tes Notifikasi Pengingat",
   "command.openSettings": "Pengaturan",
@@ -22,5 +25,10 @@
   "config.remindBeforeMinutes": "Kirim pengingat sekian menit sebelum masuk waktu sholat. 0 = nonaktif.",
   "config.modalNotification": "Tampilkan notifikasi masuk waktu sholat sebagai dialog modal (harus diklik) supaya tidak terlewat.",
   "config.hijriOffset": "Geser tanggal Ramadhan (hari) relatif terhadap kalender Umm al-Qura. Mis. 1 jika di Indonesia mulai sehari lebih lambat.",
-  "config.showRamadanCountdown": "Tampilkan countdown Ramadhan di status bar dan dashboard."
+  "config.showRamadanCountdown": "Tampilkan countdown Ramadhan di status bar dan dashboard.",
+  "config.sound.enabled": "Putar suara bersama notifikasi sholat.",
+  "config.sound.file": "Path file audio adzan (mp3, m4a, wav…) yang diputar saat masuk waktu sholat. Kosongkan untuk memakai suara bawaan (ding-dong).",
+  "config.sound.fajrFile": "File adzan khusus Subuh (opsional). Kosongkan untuk memakai `pray.sound.file`.",
+  "config.sound.volume": "Volume (0–100).",
+  "config.sound.beforeReminder": "Putar juga suara ding-dong untuk pengingat sebelum masuk waktu sholat."
 }

@@ -236,7 +236,7 @@ h2 { margin: 0 0 8px; font-size: 0.8em; font-weight: 600; text-transform: upperc
 
 /* --- Actions ------------------------------------------------------------ */
 
-.actions { display: grid; grid-template-columns: 1fr 1fr auto; gap: 6px; }
+.actions { display: grid; grid-template-columns: 1fr 1fr auto auto; gap: 6px; }
 button {
   padding: 6px 10px;
   border: 1px solid transparent;

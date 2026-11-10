@@ -2,7 +2,7 @@
   "name": "pray-reminder",
   "displayName": "%displayName%",
   "description": "%description%",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "asnur",
   "license": "MIT",
   "private": true,
@@ -56,6 +56,21 @@
       {
         "command": "pray.setLocation",
         "title": "%command.setLocation%",
+        "category": "Pray"
+      },
+      {
+        "command": "pray.chooseSound",
+        "title": "%command.chooseSound%",
+        "category": "Pray"
+      },
+      {
+        "command": "pray.toggleSound",
+        "title": "%command.toggleSound%",
+        "category": "Pray"
+      },
+      {
+        "command": "pray.stopSound",
+        "title": "%command.stopSound%",
         "category": "Pray"
       },
       {
@@ -180,6 +195,33 @@
           "type": "boolean",
           "default": true,
           "description": "%config.showRamadanCountdown%"
+        },
+        "pray.sound.enabled": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.sound.enabled%"
+        },
+        "pray.sound.file": {
+          "type": "string",
+          "default": "",
+          "description": "%config.sound.file%"
+        },
+        "pray.sound.fajrFile": {
+          "type": "string",
+          "default": "",
+          "description": "%config.sound.fajrFile%"
+        },
+        "pray.sound.volume": {
+          "type": "number",
+          "default": 80,
+          "minimum": 0,
+          "maximum": 100,
+          "description": "%config.sound.volume%"
+        },
+        "pray.sound.beforeReminder": {
+          "type": "boolean",
+          "default": true,
+          "description": "%config.sound.beforeReminder%"
         }
       }
     }

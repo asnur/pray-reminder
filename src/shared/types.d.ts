@@ -32,6 +32,7 @@ export interface DashboardData {
   strings: Record<string, string>;
   location: string;
   method: string;
+  soundEnabled: boolean;
   hijriLabel: string | null;
   inRamadan: boolean;
   /** yesterday's Isha, used as the starting point before Fajr */
@@ -43,7 +44,7 @@ export interface DashboardData {
 
 export type ToWebview = { type: 'data'; data: DashboardData };
 
-export type WebviewCommand = 'pray.setLocation' | 'pray.testReminder' | 'pray.openSettings';
+export type WebviewCommand = 'pray.setLocation' | 'pray.testReminder' | 'pray.openSettings' | 'pray.toggleSound';
 
 export type FromWebview =
   | { type: 'ready' }
